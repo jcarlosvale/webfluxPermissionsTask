@@ -1,0 +1,37 @@
+plugins {
+	id 'org.springframework.boot' version '2.1.8.RELEASE'
+	id 'io.spring.dependency-management' version '1.0.8.RELEASE'
+	id 'java'
+}
+
+group = 'com.breakwater'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	jmockitVersion = '1.46'
+	junitVersion = '5.4.1'
+}
+
+dependencies {
+	implementation('org.springframework.boot:spring-boot-starter-data-mongodb-reactive')
+	implementation('org.springframework.boot:spring-boot-starter-webflux')
+	implementation("de.flapdoodle.embed:de.flapdoodle.embed.mongo")
+
+	compileOnly('org.projectlombok:lombok')
+	annotationProcessor('org.projectlombok:lombok')
+
+	testImplementation("org.junit.jupiter:junit-jupiter:${junitVersion}")
+	testImplementation("org.jmockit:jmockit:${jmockitVersion}")
+	testImplementation('org.springframework.boot:spring-boot-starter-test')
+	testImplementation('io.projectreactor:reactor-test')
+}
+
+test {
+	jvmArgs "-javaagent:${classpath.find { it.name.contains("jmockit") }.absolutePath}"
+	useJUnitPlatform()
+}
