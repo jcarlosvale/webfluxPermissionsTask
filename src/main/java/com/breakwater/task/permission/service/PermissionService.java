@@ -1,12 +1,16 @@
 package com.breakwater.task.permission.service;
 
 import com.breakwater.task.department.dto.DepartmentDTO;
+import com.breakwater.task.department.model.Department;
 import com.breakwater.task.department.service.DepartmentService;
+import com.breakwater.task.permission.dto.PermissionDTO;
 import com.breakwater.task.permission.enums.PermissionType;
 import com.breakwater.task.permission.exception.DepartmentNotFoundException;
 import com.breakwater.task.permission.exception.UserNotFoundException;
+import com.breakwater.task.permission.model.Permission;
 import com.breakwater.task.permission.repository.PermissionRepository;
 import com.breakwater.task.user.dto.UserDTO;
+import com.breakwater.task.user.model.User;
 import com.breakwater.task.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,5 +44,30 @@ public class PermissionService {
                     .flatMap(permission -> Mono.just(permission.getType().name()))
                     .switchIfEmpty(getPermissionDescriptionByDepartmentAndUser(departmentDTO.getParent(), userDTO));
         }
+    }
+
+    public Mono<PermissionDTO> updatePermissionByDepartmentAndUser(UUID departmentId, UUID userId, PermissionType permissionType) {
+        Mono<DepartmentDTO> departmentDTOMono =
+                departmentService
+                        .readDepartmentWithParents(departmentId)
+                        .switchIfEmpty(Mono.error(new DepartmentNotFoundException("Department not found ID: " + departmentId)));
+        Mono<UserDTO> userDTOMono = userService.findById(userId).switchIfEmpty(Mono.error(new UserNotFoundException("User not found ID: " + userId)));
+        return departmentDTOMono.flatMap(departmentDTO -> userDTOMono.flatMap(userDTO -> savePermission(departmentDTO, userDTO, permissionType)));
+    }
+
+    private Mono<PermissionDTO> savePermission(DepartmentDTO departmentDTO, UserDTO userDTO,
+                                               PermissionType permissionType) {
+        Permission permission =
+                Permission
+                        .builder()
+                        .department(new Department(departmentDTO.getId(), departmentDTO.getName(), departmentDTO.getParent().getId()))
+                        .type(permissionType)
+                        .user(new User(userDTO.getId(), userDTO.getNickname()))
+                        .build();
+
+        return
+                permissionRepository
+                        .save(permission)
+                        .map(permission1 -> new PermissionDTO(permission1.getType(), userDTO, departmentDTO));
     }
 }
