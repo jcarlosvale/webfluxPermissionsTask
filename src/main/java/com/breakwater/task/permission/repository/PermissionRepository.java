@@ -13,4 +13,5 @@ import java.util.UUID;
 public interface PermissionRepository extends ReactiveMongoRepository<Permission, UUID> {
     Mono<Permission> findByDepartmentAndUser(Mono<Department> department, Mono<User> user);
     Mono<Permission> findByDepartment_IdAndUser_Id(Mono<UUID> departmentId, Mono<UUID> userId);
+    Mono<Permission> findByDepartment_IdAndUser_Id(UUID departmentId, UUID userId);
 }
