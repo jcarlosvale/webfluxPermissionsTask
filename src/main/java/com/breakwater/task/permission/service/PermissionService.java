@@ -1,7 +1,8 @@
 package com.breakwater.task.permission.service;
 
+import com.breakwater.task.department.dto.DepartmentDTO;
 import com.breakwater.task.department.model.Department;
-import com.breakwater.task.department.repository.DepartmentRepository;
+import com.breakwater.task.department.service.DepartmentService;
 import com.breakwater.task.permission.enums.PermissionType;
 import com.breakwater.task.permission.exception.DepartmentNotFoundException;
 import com.breakwater.task.permission.exception.UserNotFoundException;
@@ -19,16 +20,46 @@ import java.util.UUID;
 public class PermissionService {
 
     private final PermissionRepository permissionRepository;
-    private final DepartmentRepository departmentRepository;
+    private final DepartmentService departmentService;
     private final UserRepository userRepository;
 
     public Mono<String> getPermissionDescriptionByDepartmentAndUser(UUID departmentId, UUID userId) {
-        Mono<Department> department = departmentRepository.findById(departmentId)
-                .switchIfEmpty(Mono.error(new DepartmentNotFoundException("Department not found ID: " + departmentId)));
-        Mono<User> user = userRepository.findById(userId).switchIfEmpty(Mono.error(new UserNotFoundException("User not found ID: " + userId)));
+        Mono<DepartmentDTO> departmentDTOMono =
+                departmentService
+                        .readDepartmentWithParents(departmentId)
+                        .switchIfEmpty(Mono.error(new DepartmentNotFoundException("Department not found ID: " + departmentId)));
+        Mono<User> userMono = userRepository.findById(userId).switchIfEmpty(Mono.error(new UserNotFoundException("User not found ID: " + userId)));
+        return getPermissionDescriptionByDepartmentAndUser(departmentDTOMono, userMono).log();
+    }
+
+    private Mono<String> getPermissionDescriptionByDepartmentAndUser(Mono<DepartmentDTO> departmentDTOMono, Mono<User> userMono) {
         return permissionRepository
-                .findByDepartmentAndUser(department, user)
+                .findByDepartment_IdAndUser_Id(departmentDTOMono.flatMap(departmentDTO -> Mono.just(departmentDTO.getId())), userMono.flatMap(user1 -> Mono.just(user1.getId())))
                 .flatMap(permission -> Mono.just(permission.getType().name()))
-                .defaultIfEmpty(PermissionType.NONE.name());
+                .switchIfEmpty(Mono.just(PermissionType.NONE.name()));
+
+//        return
+//        departmentDTOMono
+//                .flatMap(departmentDTO -> {
+//                    return
+//                            permissionRepository
+//                                    .findByDepartment_IdAndUser_Id(Mono.just(departmentDTO.getId()), userMono.flatMap(user1 -> Mono.just(user1.getId())))
+//                                    .flatMap(permission -> Mono.just(permission.getType().name()))
+//                                    .switchIfEmpty(Mono.just(PermissionType.NONE.name()));
+
+//                    if (departmentDTO.getParent() != null) {
+//                        return
+//                        permissionRepository
+//                                .findByDepartment_IdAndUser_Id(Mono.just(departmentDTO.getId()), userMono.flatMap(user1 -> Mono.just(user1.getId())))
+//                                .flatMap(permission -> Mono.just(permission.getType().name()))
+//                                .switchIfEmpty(getPermissionDescriptionByDepartmentAndUser(Mono.just(departmentDTO.getParent()), userMono));
+//                    } else { //root
+//                        return
+//                        permissionRepository
+//                                .findByDepartment_IdAndUser_Id(Mono.just(departmentDTO.getId()), userMono.flatMap(user1 -> Mono.just(user1.getId())))
+//                                .flatMap(permission -> Mono.just(permission.getType().name()))
+//                                .switchIfEmpty(Mono.just(PermissionType.NONE.name()));
+//                    }
+//                });
     }
 }
