@@ -13,17 +13,14 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/v1/permissions")
 public class PermissionController {
 
     private final PermissionService permissionService;
 
-    private static final String PERMISSION_QUERY_END_POINT_V1 = "/from";
-    private static final String DEPARTMENT_RESOURCE = "/department";
-    private static final String USER_RESOURCE = "/user";
+    public static final String PERMISSION_END_POINT_V1 = "/v1/permissions/from/department/{departmentId}/user/{userId}";
 
 
-    @GetMapping(PERMISSION_QUERY_END_POINT_V1 + DEPARTMENT_RESOURCE + "/{departmentId}" + USER_RESOURCE + "/{userId}")
+    @GetMapping(PERMISSION_END_POINT_V1)
     public Mono<ResponseEntity<String>> getPermissionByDepartmentAndUser(@PathVariable("departmentId")  UUID departmentId,
                                                                          @PathVariable("userId")        UUID userId) {
         return
@@ -33,7 +30,7 @@ public class PermissionController {
                         .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @PutMapping(PERMISSION_QUERY_END_POINT_V1 + DEPARTMENT_RESOURCE + "/{departmentId}" + USER_RESOURCE + "/{userId}")
+    @PutMapping(PERMISSION_END_POINT_V1)
     public Mono<ResponseEntity<PermissionDTO>> updatePermissionByDepartmentAndUser(@PathVariable("departmentId")  UUID departmentId,
                                                                                    @PathVariable("userId")        UUID userId,
                                                                                    @RequestBody                   String permissionType) {
@@ -42,11 +39,5 @@ public class PermissionController {
                         .updatePermissionByDepartmentAndUser(departmentId, userId, PermissionType.valueOf(permissionType.trim()))
                         .map(permission -> new ResponseEntity<>(permission, HttpStatus.OK))
                         .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
-    }
-
-    @GetMapping("/hello")
-    public Mono<ResponseEntity<String>> hello() {
-        return Mono.just(new ResponseEntity<>("OK2", HttpStatus.OK));
-
     }
 }
